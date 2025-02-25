@@ -13,8 +13,6 @@ type application struct {
 }
 
 func main() {
-	// set up a webserver to listen over http
-	// set up a basic route
 	addr := flag.String("addr", ":4000", "HTTP server addr")
 	flag.Parse()
 
