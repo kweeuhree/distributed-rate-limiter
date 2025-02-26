@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 )
 
 type application struct {
