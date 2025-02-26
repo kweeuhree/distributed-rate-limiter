@@ -15,6 +15,12 @@ import (
 type application struct {
 	infoLog  *log.Logger
 	errorLog *log.Logger
+	rdb      *redis.Client
+}
+
+type RedisEnv struct {
+	Conn string
+	Pass string
 }
 
 func main() {
