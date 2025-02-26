@@ -14,7 +14,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, v1+"/get", app.v1GetEndpoint)
 	router.HandlerFunc(http.MethodPost, v1+"/post", app.v1PostEndpoint)
 
-	chain := alice.New(app.LogRequest, app.RateLimiterMiddleware)
+	chain := alice.New(app.recoverPanic, app.LogRequest, app.RateLimiterMiddleware)
 
 	return chain.Then(router)
 }
