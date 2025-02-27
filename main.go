@@ -12,16 +12,24 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type application struct {
-	infoLog  *log.Logger
-	errorLog *log.Logger
-	rdb      *redis.Client
-}
-
 type RedisEnv struct {
 	Conn string
 	Pass string
 }
+
+type TokenConfig struct {
+	maxTokens  int
+	windowSize int
+}
+
+type application struct {
+	infoLog  *log.Logger
+	errorLog *log.Logger
+	rdb      *redis.Client
+	tc       *TokenConfig
+}
+
+// TODO var pool *redis.Pool
 
 func main() {
 	addr := flag.String("addr", ":4000", "HTTP server addr")
@@ -42,10 +50,16 @@ func main() {
 
 	infoLog.Println("Connected to Redis...")
 
+	tokenConfig := &TokenConfig{
+		maxTokens:  10,
+		windowSize: 60,
+	}
+
 	app := &application{
 		infoLog:  infoLog,
 		errorLog: errorLog,
 		rdb:      rdb,
+		tc:       tokenConfig,
 	}
 
 	srv := &http.Server{
