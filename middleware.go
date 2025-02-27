@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -37,24 +36,24 @@ func (app *application) RateLimiterMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if exists > 0 {
+		switch {
+		case exists > 0:
 			if err := app.processExistingClient(client); err != nil {
 				if err == ErrTooManyRequests {
+					app.errorLog.Printf("too many requests from ip: %s", client.IP)
 					http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
-				} else {
-					app.errorLog.Printf("redis error: %v", err)
-					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				}
+
+				app.errorLog.Printf("redis error: %v", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
-		}
-		if exists == 0 {
+		case exists == 0:
 			if err := app.trackNewIP(client); err != nil {
 				http.Error(w, "failed to start tracking new ip", http.StatusInternalServerError)
 			}
 		}
 
-		app.infoLog.Println("i am middleware")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -89,7 +88,10 @@ func (app *application) processExistingClient(client *currentClient) error {
 func (app *application) trackNewIP(client *currentClient) error {
 	txPipe := app.rdb.TxPipeline()
 
-	hashFields := []string{"tokens", strconv.Itoa(app.tc.maxTokens - 1), "timestamp", time.Now().String()}
+	hashFields := map[string]interface{}{
+		"tokens":    app.tc.maxTokens - 1,
+		"timestamp": time.Now().String(),
+	}
 
 	txPipe.HSet(client.ctx, fmt.Sprintf("rate_limit:%s", client.IP), hashFields)
 	txPipe.Expire(client.ctx, fmt.Sprintf("rate_limit:%s", client.IP), time.Duration(app.tc.windowSize)*time.Second)
