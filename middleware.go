@@ -7,7 +7,15 @@ import (
 	"time"
 )
 
-var ErrTooManyRequests = fmt.Errorf("too many requests")
+type StatusMessage struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
+var TooManyRequestsResponse = &StatusMessage{
+	Status:  "error",
+	Message: "Too many requests.",
+}
 
 type currentClient struct {
 	IP       string
