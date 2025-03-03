@@ -7,8 +7,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/kweeuhree/toolkit"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -23,13 +25,10 @@ type TokenConfig struct {
 }
 
 type application struct {
-	infoLog  *log.Logger
-	errorLog *log.Logger
-	rdb      *redis.Client
-	tc       *TokenConfig
+	rdb *redis.Client
+	tc  *TokenConfig
+	t   *toolkit.Tools
 }
-
-// TODO var pool *redis.Pool
 
 func main() {
 	addr := flag.String("addr", ":4000", "HTTP server addr")
@@ -37,12 +36,7 @@ func main() {
 
 	infoLog, errorLog := setupLogger()
 
-	redisEnv, err := loadEnvVariables()
-	if err != nil {
-		errorLog.Fatal("could not connect to Redis:", err)
-	}
-
-	rdb, err := redisEnv.openRedis()
+	rdb, err := setupRedis()
 	if err != nil {
 		errorLog.Fatal(err)
 	}
@@ -50,16 +44,12 @@ func main() {
 
 	infoLog.Println("Connected to Redis...")
 
-	tokenConfig := &TokenConfig{
-		maxTokens:  10,
-		windowSize: 60,
-	}
-
 	app := &application{
-		infoLog:  infoLog,
-		errorLog: errorLog,
-		rdb:      rdb,
-		tc:       tokenConfig,
+		rdb: rdb,
+		// First argument is maxTokens, second is windowSize
+		tc: setupTokenConfig(10, 60),
+		// Custom toolkit with centralized logging
+		t: setupToolkit(infoLog, errorLog),
 	}
 
 	srv := &http.Server{
@@ -68,21 +58,20 @@ func main() {
 		Handler:  app.routes(),
 	}
 
-	app.infoLog.Printf("Starting server on port %s", *addr)
+	app.t.InfoLog.Printf("Starting server on port %s", *addr)
 	if err := srv.ListenAndServe(); err != nil {
 		errorLog.Fatal(err)
 	}
 }
 
-func (r *RedisEnv) openRedis() (*redis.Client, error) {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     r.Conn,
-		Username: "default",
-		Password: r.Pass,
-		DB:       0,
-	})
+func setupRedis() (*redis.Client, error) {
+	redisEnv, err := loadEnvVariables()
+	if err != nil {
+		return nil, err
+	}
 
-	if err := rdb.Ping(context.Background()).Err(); err != nil {
+	rdb, err := redisEnv.openRedis()
+	if err != nil {
 		return nil, err
 	}
 
@@ -103,8 +92,40 @@ func loadEnvVariables() (*RedisEnv, error) {
 	}, nil
 }
 
+func (r *RedisEnv) openRedis() (*redis.Client, error) {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:         r.Conn,
+		Username:     "default",
+		Password:     r.Pass,
+		DB:           0,
+		PoolSize:     10,
+		MinIdleConns: 2,
+		PoolTimeout:  30 * time.Second,
+	})
+
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		return nil, fmt.Errorf("could not start Redis connection: %w", err)
+	}
+
+	return rdb, nil
+}
+
 func setupLogger() (*log.Logger, *log.Logger) {
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 	return infoLog, errorLog
+}
+
+func setupToolkit(infoLog, errorLog *log.Logger) *toolkit.Tools {
+	return &toolkit.Tools{
+		ErrorLog: errorLog,
+		InfoLog:  infoLog,
+	}
+}
+
+func setupTokenConfig(maxTokens, windowSize int) *TokenConfig {
+	return &TokenConfig{
+		maxTokens:  maxTokens,
+		windowSize: windowSize,
+	}
 }
