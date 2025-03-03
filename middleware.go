@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -28,10 +27,10 @@ func (app *application) RateLimiterMiddleware(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		client := newCurrentClient(GetClientIP(r), context.Background())
+		client := newCurrentClient(app.t.GetClientIP(r), context.Background())
 		exists, err := app.clientExists(client)
 		if err != nil {
-			app.errorLog.Printf("failed to check if client exists: %v", err)
+			app.t.ErrorLog.Printf("failed to check if client exists: %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -40,17 +39,19 @@ func (app *application) RateLimiterMiddleware(next http.Handler) http.Handler {
 		case exists > 0:
 			if err := app.processExistingClient(client); err != nil {
 				if err == ErrTooManyRequests {
-					app.errorLog.Printf("too many requests from ip: %s", client.IP)
+					app.t.ErrorLog.Printf("too many requests from ip: %s", client.IP)
 					http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+					return
 				}
 
-				app.errorLog.Printf("redis error: %v", err)
+				app.t.ErrorLog.Printf("redis error: %v", err)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
 		case exists == 0:
 			if err := app.trackNewIP(client); err != nil {
 				http.Error(w, "failed to start tracking new ip", http.StatusInternalServerError)
+				return
 			}
 		}
 
@@ -112,44 +113,4 @@ func (app *application) getClientTokens(client *currentClient) (int, error) {
 	}
 
 	return tokens, nil
-}
-
-func (app *application) LogRequest(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		app.infoLog.Printf("%s - %s %s %s", r.RemoteAddr, r.Proto, r.Method,
-			r.URL.RequestURI())
-		next.ServeHTTP(w, r)
-	})
-}
-func (app *application) recoverPanic(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Create a deferred function (which will always be run in the event
-		// of a panic as Go unwinds the stack).
-		defer func() {
-			// Use the builtin recover function to check if there has been a
-			// panic or not. If there has...
-			if err := recover(); err != nil {
-				// Set a "Connection: close" header on the response.
-				w.Header().Set("Connection", "close")
-				// Call the app.serverError helper method to return a 500
-				// Internal Server response.
-				app.errorLog.Println(w, fmt.Errorf("%s", err))
-			}
-		}()
-		next.ServeHTTP(w, r)
-	})
-}
-
-func GetClientIP(r *http.Request) string {
-	// Check for the X-Forwarded-For header
-	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
-		// If multiple IPs are present, split by comma and return the first part
-		ips := strings.Split(forwarded, ",")
-		return strings.TrimSpace(ips[0])
-	}
-
-	// If X-Forwarded-For is not present, return RemoteAddr
-	// This will return the IP address of the immediate connection,
-	// which might be the client or a proxy
-	return strings.Split(r.RemoteAddr, ":")[0]
 }
