@@ -47,7 +47,8 @@ func main() {
 
 	app := &application{
 		rdb: rdb,
-		// First argument is maxTokens, second is windowSize
+		sha: sha,
+		// 10 max tokens, 60-second window
 		tc: setupTokenConfig(10, 60),
 		// Custom toolkit with centralized logging
 		t: setupToolkit(infoLog, errorLog),
