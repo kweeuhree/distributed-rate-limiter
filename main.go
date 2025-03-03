@@ -119,6 +119,7 @@ func (r *RedisEnv) openRedis() (*redis.Client, error) {
 		PoolTimeout:  30 * time.Second,
 	})
 
+	// Verify Redis connection
 	if err := rdb.Ping(context.Background()).Err(); err != nil {
 		return nil, fmt.Errorf("could not start Redis connection: %w", err)
 	}
