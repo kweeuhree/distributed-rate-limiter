@@ -26,6 +26,7 @@ type TokenConfig struct {
 
 type application struct {
 	rdb *redis.Client
+	sha string
 	tc  *TokenConfig
 	t   *toolkit.Tools
 }
