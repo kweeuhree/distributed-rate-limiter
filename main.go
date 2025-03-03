@@ -37,7 +37,7 @@ func main() {
 
 	infoLog, errorLog := setupLogger()
 
-	rdb, err := setupRedis()
+	rdb, sha, err := setupRedis()
 	if err != nil {
 		errorLog.Fatal(err)
 	}
@@ -65,18 +65,32 @@ func main() {
 	}
 }
 
-func setupRedis() (*redis.Client, error) {
+func setupRedis() (*redis.Client, string, error) {
 	redisEnv, err := loadEnvVariables()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	rdb, err := redisEnv.openRedis()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return rdb, nil
+	// Lua scripting ensures atomicity and avoids race conditions:
+	// Lua scripts in Redis execute atomically, which means they
+	// can’t be interrupted by other operations while running.
+	script, err := os.ReadFile("rateLimiter.lua")
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to read Lua script: %w", err)
+	}
+	// Store the compiled and loaded Lua script in Redis' server cache,
+	// and get its SHA hash
+	sha, err := rdb.ScriptLoad(context.Background(), string(script)).Result()
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to load Lua script: %w", err)
+	}
+
+	return rdb, sha, nil
 }
 
 func loadEnvVariables() (*RedisEnv, error) {
