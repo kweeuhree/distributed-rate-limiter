@@ -1,4 +1,4 @@
-# Distributed Rate Limiter
+# 🚦Distributed Rate Limiter
 
 A distributed rate limiter implemented in Go using the Token Bucket algorithm and Redis for storing tokens. This program is designed to handle bursts of requests efficiently while ensuring atomicity and scalability.
 
@@ -12,7 +12,7 @@ A distributed rate limiter implemented in Go using the Token Bucket algorithm an
 
 ---
 
-## Features
+## ⚙️ Features
 
 - **Token Bucket Algorithm:** Handles bursts of requests by allowing a fixed number of tokens to be consumed within a time window.
 
@@ -28,7 +28,7 @@ A distributed rate limiter implemented in Go using the Token Bucket algorithm an
 
 ---
 
-## Rate Limiter Middleware
+## 🚦 Rate Limiter Middleware
 
 Each client is identified by their IP address, and Redis key is created for each client:
 
@@ -46,15 +46,15 @@ The Lua script checks if enough tokens are available using `redis.call()`. If to
 
 ---
 
-## Prerequisites
+## 🔍 Prerequisites
 
 - Go 1.20+
 
 - Redis 6.0+
 
-- Environment variables for Redis connection (`REDIS_CONN_ADDRESS`, `REDIS_PASSWORD`)
+- Environment variables for Redis connection (Public endpoint: `REDIS_CONN_ADDRESS`, Password to the database: `REDIS_PASSWORD`)
 
-## Run the program
+## 🖥️ Run the program
 
 Clone the repository:
 
@@ -112,7 +112,7 @@ rdb := redis.NewClient(&redis.Options{
 
 ---
 
-## Challenges and learning
+## 📚 Challenges and learning
 
 I started this project wanting to learn concurrency in Go a little better, as well as trying out a distributed solution for a common real-world problem, such as the necessity to limit the amount of requests a single user can make.
 
