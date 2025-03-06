@@ -78,10 +78,10 @@ REDIS_CONN_ADDRESS=redis-XXXXX.cXXX.us-centralX-X.gce.redns.redis-cloud.com:XXXX
 docker-compose up
 ```
 
-Console output upon succesfful launch:
+Console output upon successful launch:
 
 <p align="center">
-<img alt="Console output upon succesfful launch" src="assets/screenshots/console.png" />
+<img alt="Console output upon successful launch" src="assets/screenshots/console.png" />
 </p>
 ---
 
