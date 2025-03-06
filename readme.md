@@ -81,7 +81,7 @@ docker-compose up
 Console output upon succesfful launch:
 
 <p align="center">
-<img alt="Console output upon succesfful launch" src="assets\screenshots\console.png" />
+<img alt="Console output upon succesfful launch" src="assets/screenshots/console.png" />
 </p>
 ---
 
