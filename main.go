@@ -32,9 +32,6 @@ type application struct {
 }
 
 func main() {
-	addr := flag.String("addr", ":4000", "HTTP server addr")
-	flag.Parse()
-
 	infoLog, errorLog := setupLogger()
 
 	rdb, sha, err := setupRedis()
@@ -42,8 +39,10 @@ func main() {
 		errorLog.Fatal(err)
 	}
 	defer rdb.Close()
-
 	infoLog.Println("Connected to Redis...")
+
+	addr := flag.String("addr", "4000", "HTTP server addr")
+	flag.Parse()
 
 	app := &application{
 		rdb: rdb,
