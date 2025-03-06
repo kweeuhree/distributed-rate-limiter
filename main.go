@@ -7,9 +7,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/kweeuhree/toolkit"
 	"github.com/redis/go-redis/v9"
 )
