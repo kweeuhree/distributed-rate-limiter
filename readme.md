@@ -1,12 +1,11 @@
 # 🚦Distributed Rate Limiter
 
-A distributed rate limiter implemented in Go using the Token Bucket algorithm and Redis for storing tokens. This program is designed to handle bursts of requests efficiently while ensuring atomicity and scalability.
+A distributed rate limiter implemented in Go using the Token Bucket algorithm and Redis for storing tokens. This program runs in a Docker container, and is designed to handle bursts of requests efficiently while ensuring atomicity and scalability.
 
 **Third-Party packages**
 
 - The `httprouter` package is used for fast and efficient routing.
 - The `alice` package is used for clear and readable middleware chaining.
-- The `godotenv` loads environment variables from a `.env` file.
 - The `go-redis` is a Redis client for Go.
 - The `toolkit` custom reusable module with logic commonly used in web development, such as logging, JSON handling, and error management.
 
@@ -52,64 +51,38 @@ The Lua script checks if enough tokens are available using `redis.call()`. If to
 
 - Redis 6.0+
 
-- Environment variables for Redis connection (Public endpoint: `REDIS_CONN_ADDRESS`, Password to the database: `REDIS_PASSWORD`)
+- Redis connection secrets (Public endpoint: `REDIS_CONN_ADDRESS`, Password to the database: `REDIS_PASSWORD`)
 
 ## 🖥️ Run the program
 
-Clone the repository:
+- **Pull the docker image**
 
 ```bash
-git clone https://github.com/yourusername/distributed-rate-limiter.git
-cd distributed-rate-limiter
+docker pull ghcr.io/kweeuhree/distributed-rate-limiter:latest
 ```
 
-Install dependencies:
+- **Copy `compose.yaml` from the repository into the folder with the docker image.**
 
-```bash
-go mod tidy
-```
+- **Create the Secrets File**
 
-Set up environment variables:
-
-```bash
-echo "REDIS_CONN_ADDRESS=localhost:6379" > .env
-echo "REDIS_PASSWORD=yourpassword" >> .env
-```
-
-Run the application:
-
-```bash
-go run .
-```
-
-#### Configuration
-
-**Token Bucket Parameters**
-maxTokens: Maximum number of tokens allowed per client.
-
-windowSize: Time window (in seconds) for token replenishment.
-
-Example:
+Ensure the `redisSecrets.txt` file exists in the same directory as the compose.yaml, and contains the correct Redis connection endpoint and password.
+Your file should look like so:
 
 ```go
-app := &application{
-    rdb: rdb,
-    sha: sha,
-    tc:  setupTokenConfig(10, 60), // 10 tokens, 60-second window
-    t:   setupToolkit(infoLog, errorLog),
-}
+REDIS_CONN_ADDRESS=redis-XXXXX.cXXX.us-centralX-X.gce.redns.redis-cloud.com:XXXXX;REDIS_PASSWORD=1234567890qwerty
 ```
 
-**Redis Configuration**
+- **Run the container:**
 
-PoolSize: Maximum number of Redis connections.
-
-```go
-rdb := redis.NewClient(&redis.Options{
-    PoolSize: 10,
-})
+```bash
+docker-compose up
 ```
 
+Console output upon succesfful launch:
+
+<p align="center">
+<img alt="Console output upon succesfful launch" src="assets\screenshots\console.png" />
+</p>
 ---
 
 ## 📚 Challenges and learning
