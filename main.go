@@ -66,7 +66,7 @@ func main() {
 }
 
 func setupRedis() (*redis.Client, string, error) {
-	redisEnv, err := loadEnvVariables()
+	redisEnv, err := loadRedisSecrets()
 	if err != nil {
 		return nil, "", err
 	}
@@ -93,17 +93,30 @@ func setupRedis() (*redis.Client, string, error) {
 	return rdb, sha, nil
 }
 
-func loadEnvVariables() (*RedisEnv, error) {
-	godotenv.Load()
-
-	redisConn := os.Getenv("REDIS_CONN_ADDRESS")
-	redisPassword := os.Getenv("REDIS_PASSWORD")
-	if redisConn == "" || redisPassword == "" {
-		return nil, fmt.Errorf("failed loading with the following vars: %s, %s", redisConn, redisPassword)
+func loadRedisSecrets() (*RedisEnv, error) {
+	secrets, err := os.ReadFile("/run/secrets/redisSecrets")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read Redis secrets: %v", err)
 	}
+
+	splitSecrets := strings.Split(string(secrets), ";")
+
+	processedSecrets := make(map[string]string)
+	for _, secret := range splitSecrets {
+		splitSecret := strings.Split(string(secret), "=")
+		processedSecrets[splitSecret[0]] = splitSecret[1]
+		if splitSecret[0] == "" || splitSecret[1] == "" {
+			return nil, fmt.Errorf("missing Redis secrets: %v", splitSecret)
+		}
+	}
+
+	if len(processedSecrets) < 2 {
+		return nil, fmt.Errorf("failed loading with the following vars: %v", processedSecrets)
+	}
+
 	return &RedisEnv{
-		Conn: redisConn,
-		Pass: redisPassword,
+		Conn: processedSecrets["REDIS_CONN_ADDRESS"],
+		Pass: processedSecrets["REDIS_PASSWORD"],
 	}, nil
 }
 
